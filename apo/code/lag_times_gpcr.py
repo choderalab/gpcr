@@ -18,7 +18,7 @@ featurizer = build_full_featurizer(PDB, n_choose)
 for lag_time in lag_times:
 	
 	filenames = glob.glob("../../../GPCRexacycle/dcd_trajectories/apo_b2ar_%d_stride/trj*" % lag_time)
-	print ' loading apo_b2ar_%d_stride trajectories'
+	print ' loading apo_b2ar_%d_stride trajectories' % lag_time
 
 	train = [md.load(filename, top=PDB) for filename in filenames[::2]]
 	
@@ -27,6 +27,6 @@ for lag_time in lag_times:
 	tica_optimizer.optimize(n_iter, train)
 
 
-	sklearn.externals.joblib.dump(tica_optimizer.featurizer, "./featurizer_lt_%d-%d.job" % (lag_time, n_choose), compress=True)
+	sklearn.externals.joblib.dump(tica_optimizer.featurizer, "../joblib_dump/featurizer_lt_%d-%d.job" % (lag_time, n_choose), compress=True)
 
 
