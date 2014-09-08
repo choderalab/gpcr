@@ -13,13 +13,15 @@ lag_times = [2,3,4,5]
 
 PDB =  md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structures/apo_snapshot.pdb')
 
+featurizer = build_full_featurizer(PDB, n_choose)
+
 for lag_time in lag_times:
 	
 	filenames = glob.glob("../../../GPCRexacycle/dcd_trajectories/apo_b2ar_%d_stride/trj*" % lag_time)
+	print ' loading apo_b2ar_%d_stride trajectories'
 
 	train = [md.load(filename, top=PDB) for filename in filenames[::2]]
 	
-	featurizer = build_full_featurizer(PDB, n_choose)
 
 	tica_optimizer = mixtape.selector.TICAOptimizer(featurizer, train, lag_time=lag_time)
 	tica_optimizer.optimize(n_iter, train)
