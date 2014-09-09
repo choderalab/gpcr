@@ -11,7 +11,7 @@ import glob
 n_choose = 100
 stride = 1
 lag_time = 1
-iteration = 3
+iteration = 9
 
 PDB =  md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structures/apo_snapshot.pdb')
 filenames = glob.glob('../../../GPCRexacycle/dcd_trajectories/apo_b2ar_processed/trj*')
@@ -39,20 +39,22 @@ pipeline.score(train), pipeline.score(test)
 X_all = feature_pipeline.transform(trajectories)
 q = np.concatenate(X_all)
 
-covars_ = cluster.covars_
+S_all = cluster_pipeline.transform(trajectories)
 covars_ = cluster.covars_.diagonal(axis1=1, axis2=2)
-
-for i, j in [(0, 1)]:
+for i, j in [(0,1)]:
     fig = plt.figure()
-    plt.hexbin(q[:,i], q[:, j], bins='log')
-    plt.errorbar(cluster.means_[:, i], cluster.means_[:, j], xerr=covars_[:,i] ** 0.5, yerr=covars_[:, j] ** 0.5, fmt='kx', linewidth=4)
-    fig.savefig('../figures/gpcr_tics%d-%d.pdf' % (iteration,n_choose))
+    plt.hexbin(q[:,i],q[:,j], bins = 'log')
+    plt.errorbar(cluster.means_[:, i], cluster.means_[:,j], xerr=covars_[:,i]**0.5, yerr=covars_[:,j]**0.5,fmt='kx', linewidth=4)
+    for k,data in enumerate(X_all):
+        if S_all[k][0]==2:
+            plt.plot(data[:,i], data[:,j], 'k')
+    fig.savefig('figures/gpcr_tics_state2.pdf')
 
 
-states = cluster_pipeline.transform(trajectories)
-ind = msm.draw_samples(states, 3)
+ind = msm.draw_samples(S_all, 3)
 samples = mixtape.utils.map_drawn_samples(ind, trajectories)
 
 for i in range(n_states):
     for k, t in enumerate(samples[i]):
         t.save("../pdbs/state%d-%d-%d.pdb" % (iteration,i, k))
+
