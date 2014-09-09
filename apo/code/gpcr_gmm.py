@@ -8,10 +8,10 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import glob
 
-n_choose = 100
+n_choose = 10
 stride = 1
 lag_time = 1
-iteration = 9
+iteration = 0
 
 PDB =  md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structures/apo_snapshot.pdb')
 filenames = glob.glob('../../../GPCRexacycle/dcd_trajectories/apo_b2ar_processed/trj*')
@@ -20,7 +20,7 @@ trajectories = [md.load(filename, top=PDB) for filename in filenames]
 train = trajectories[0::2]
 test = trajectories[1::2]
 
-featurizer = sklearn.externals.joblib.load("../../../GPCRexacycle/exacycleGPCR/analysis/featurizer/featurizer%d-%d.job" % (iteration, n_choose))
+featurizer = sklearn.externals.joblib.load("../joblib_dump/featurizer%d-%d.job" % (iteration, n_choose))
 
 n_components = 3
 n_states = 3
@@ -41,14 +41,15 @@ q = np.concatenate(X_all)
 
 S_all = cluster_pipeline.transform(trajectories)
 covars_ = cluster.covars_.diagonal(axis1=1, axis2=2)
-for i, j in [(0,1)]:
-    fig = plt.figure()
-    plt.hexbin(q[:,i],q[:,j], bins = 'log')
-    plt.errorbar(cluster.means_[:, i], cluster.means_[:,j], xerr=covars_[:,i]**0.5, yerr=covars_[:,j]**0.5,fmt='kx', linewidth=4)
-    for k,data in enumerate(X_all):
-        if S_all[k][0]==2:
-            plt.plot(data[:,i], data[:,j], 'k')
-    fig.savefig('figures/gpcr_tics_state2.pdf')
+for n in range(3):
+	for i, j in [(0,1)]:
+	    	fig = plt.figure()
+    		plt.hexbin(q[:,i],q[:,j], bins = 'log')
+    		plt.errorbar(cluster.means_[:, i], cluster.means_[:,j], xerr=covars_[:,i]**0.5, yerr=covars_[:,j]**0.5,fmt='kx', linewidth=4)
+    		for k,data in enumerate(X_all):
+        		if S_all[k][0]==n:
+            			plt.plot(data[:,i], data[:,j], 'k')
+    		fig.savefig('../figures/gpcr_tics_%d_state%d.pdf'%(n_choose, n))
 
 
 ind = msm.draw_samples(S_all, 3)
@@ -56,5 +57,5 @@ samples = mixtape.utils.map_drawn_samples(ind, trajectories)
 
 for i in range(n_states):
     for k, t in enumerate(samples[i]):
-        t.save("../pdbs/state%d-%d-%d.pdb" % (iteration,i, k))
+        t.save("../pdbs/state%d-%d-%d.pdb" % (i, k, n_choose))
 
