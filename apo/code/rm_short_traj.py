@@ -14,6 +14,6 @@ for filename in filenames:
 for k in enumerate(lengths):
 	if k[1] > 20:
 		print k
-		os.symlink('../inverse_agonist_b2ar_trajectories' % filenames[k[0]], '../inverse_agonist_b2ar_trajectories/%s' % filenames[k[0]])
+		os.symlink('../agonist_b2ar/%s' % filenames[k[0]], '../agonist_b2ar_processed/%s' % filenames[k[0]])
 
 
