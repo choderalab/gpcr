@@ -1,0 +1,51 @@
+source leaprc.ff14SB
+ amino_acids = {'ALA':'alanine', 'ARG':'arginine', 'HIS': 'histidine', 'LYS':'lysine', 'ASP': 'aspartate', 'GLU':'glutamate',       
+               'SER':'serine', 'THR':'threonine', 'ASN':'asparagine', 'GLN':'glutamine', 'CYS':'cysteine', 'GLY':'glycine',
+               'PRO':'proline', 'VAL':'valine', 'ILE':'isoleucine', 'LEU':'leucine', 'MET':'methionine', 
+               'PHE':'phenylalanine', 'TYR':'tyrosine', 'TRP':'tryptophan', 'SEC':'selenocysteine'}
+
+peptide = sequence { ACE ALA NME } 
+savepdb peptide ACE-ALA-NME.pdb 
+peptide = sequence { ACE ARG NME } 
+savepdb peptide ACE-ARG-NME.pdb 
+peptide = sequence { ACE HIS NME } 
+savepdb peptide ACE-HIS-NME.pdb 
+peptide = sequence { ACE LYS NME } 
+savepdb peptide ACE-LYS-NME.pdb 
+peptide = sequence { ACE ASP NME } 
+savepdb peptide ACE-ASP-NME.pdb 
+peptide = sequence { ACE GLU NME } 
+savepdb peptide ACE-GLU-NME.pdb 
+peptide = sequence { ACE SER NME } 
+savepdb peptide ACE-SER-NME.pdb 
+peptide = sequence { ACE THR NME } 
+savepdb peptide ACE-THR-NME.pdb 
+peptide = sequence { ACE ASN NME } 
+savepdb peptide ACE-ASN-NME.pdb 
+peptide = sequence { ACE ASN NME } 
+savepdb peptide ACE-ASN-NME.pdb 
+peptide = sequence { ACE GLN NME } 
+savepdb peptide ACE-GLN-NME.pdb 
+peptide = sequence { ACE CYS NME } 
+savepdb peptide ACE-CYS-NME.pdb 
+peptide = sequence { ACE GLY NME } 
+savepdb peptide ACE-GLY-NME.pdb 
+peptide = sequence { ACE PRO NME } 
+savepdb peptide ACE-PRO-NME.pdb 
+peptide = sequence { ACE VAL NME } 
+savepdb peptide ACE-VAL-NME.pdb 
+peptide = sequence { ACE ILE NME } 
+savepdb peptide ACE-ILE-NME.pdb 
+peptide = sequence { ACE LEU NME } 
+savepdb peptide ACE-LEU-NME.pdb 
+peptide = sequence { ACE MET NME } 
+savepdb peptide ACE-MET-NME.pdb 
+peptide = sequence { ACE PHE NME } 
+savepdb peptide ACE-PHE-NME.pdb 
+peptide = sequence { ACE TYR NME } 
+savepdb peptide ACE-TYR-NME.pdb 
+peptide = sequence { ACE TRP NME } 
+savepdb peptide ACE-TRP-NME.pdb 
+peptide = sequence { ACE SEC NME}
+savepdb peptide ACE-SEC-NME.pdb
+quit
