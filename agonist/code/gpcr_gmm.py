@@ -8,14 +8,14 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import glob
 
-n_components = 2
-n_choose = 2
+n_components = 3 
+n_choose = 10
 stride = 1
 lag_time = 1
 iteration = 0
 
-PDB =  md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structures/apo_snapshot.pdb')
-filenames = glob.glob('../../../GPCRexacycle/dcd_trajectories/apo_b2ar_processed/trj*')
+PDB =  md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structures/active_crystal_reference.pdb')
+filenames = glob.glob('../../../GPCRexacycle/dcd_trajectories/agonist_b2ar_processed/trj*')
 
 trajectories = [md.load(filename, top=PDB) for filename in filenames]
 train = trajectories[0::2]
