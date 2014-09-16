@@ -13,13 +13,17 @@ n_components = 3
 n_states = 3
 lag_time = 1
 
-ACTIVE = md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structure/active-union.pdb')
-INACTIVE = md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structure/inactive-union.pdb')
-APO = md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structure/apo_snapshot.pdb')
+ACTIVE = md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structures/active-union.pdb')
+INACTIVE = md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structures/inactive-union.pdb')
+APO = md.load_pdb('../../../GPCRexacycle/GPCR_NatureChemistry/reference-structures/apo_snapshot.pdb')
+
+filenames = glob.glob('../../../GPCRexacycle/dcd_trajectories/apo_b2ar_processed/trj*')
 
 trajectories = [md.load(filename, top=APO) for filename in filenames]
 train = trajectories[0::2]
 test = trajectories[1::2]
+
+table, bonds = APO.topology.to_dataframe()
 
 #atom selection
 I121_F282 = table[(table['resSeq'] == 121) | (table['resSeq'] == 282)].index  
@@ -32,20 +36,21 @@ binding_pocket_RMSD = table[table.isin(binding_pocket).any(1)].index
 # setting features for featurizer 
 distance = np.array([R131_L272])
 Hel3_Hel6_dist = mixtape.featurizer.AtomPairsFeaturizer(distance)
-NPxxY_RMSD_active = mixtape.featurizer.RMSDFeaturizer(ACTIVE_union, NPxxY_region)
-NPxxY_RMSD_inactive = mixtape.featurizer.RMSDFeaturizer(INACTIVE_union, NPxxY_region)
-Connector_RMSD_active = mixtape.featurizer.RMSDFeaturizer(ACTIVE_union, I121_F282)
-Connector_RMSD_inactive = mixtape.featurizer.RMSDFeaturizer(INACTIVE_union, I121_F282)
-bind_pock_RMSD_active = mixtape.featurizer.RMSDFeaturizer(ACTIVE_union, binding_pocket_RMSD)
-bind_pock_RMSD_inactive = mixtape.featurizer.RMSDFeaturizer(INACTIVE_union, binding_pocket_RMSD)
+NPxxY_RMSD_active = mixtape.featurizer.RMSDFeaturizer(ACTIVE, NPxxY_region)
+NPxxY_RMSD_inactive = mixtape.featurizer.RMSDFeaturizer(INACTIVE, NPxxY_region)
+Connector_RMSD_active = mixtape.featurizer.RMSDFeaturizer(ACTIVE, I121_F282)
+Connector_RMSD_inactive = mixtape.featurizer.RMSDFeaturizer(INACTIVE, I121_F282)
+bind_pock_RMSD_active = mixtape.featurizer.RMSDFeaturizer(ACTIVE, binding_pocket_RMSD)
+bind_pock_RMSD_inactive = mixtape.featurizer.RMSDFeaturizer(INACTIVE, binding_pocket_RMSD)
 
 # setting transformers
-union = mixtape.featurizer.TrajFeatureUnion([("Helical_distance", Hel3_Hel6_dist), ("NPxxYrmsd_active", NPxxY_RMSD_inactive),("NPxxYrmsd_inactive", NPxxYrmsd_inactive), ("connecector_active", Connector_RMSD_active),("connector_inactive", connector_RMSD_inactive), ("binding pocket_active", bind_pock_RMSD_active), ("bind_pock_in", bind_pock_RMSD_inactive)])
+union = mixtape.featurizer.TrajFeatureUnion([("Helical_distance", Hel3_Hel6_dist), ("NPxxYrmsd_active", NPxxY_RMSD_inactive),("NPxxYrmsd_inactive", NPxxY_RMSD_inactive), ("connecector_active", Connector_RMSD_active),("connector_inactive", Connector_RMSD_inactive), ("binding pocket_active", bind_pock_RMSD_active), ("bind_pock_in", bind_pock_RMSD_inactive)])
 
 
 tica = mixtape.tica.tICA(n_components=n_components, lag_time=lag_time)
 subsampler = mixtape.utils.Subsampler(lag_time=lag_time)
 cluster = mixtape.cluster.GMM(n_components=n_states, covariance_type='diag')
+msm = mixtape.markovstatemodel.MarkovStateModel(n_timescales=n_components)
 feature_pipeline = sklearn.pipeline.Pipeline([('features', union), ('tica', tica)])
 cluster_pipeline = sklearn.pipeline.Pipeline([('features', union), ('tica', tica), ('cluster', cluster)])
 pipeline = sklearn.pipeline.Pipeline([("features", union), ('tica', tica), ("subsampler", subsampler), ("cluster", cluster), ("msm", msm)])
@@ -58,37 +63,49 @@ q = np.concatenate(X_all)
 
 S_all = cluster_pipeline.transform(trajectories)
 covars_ = cluster.covars_.diagonal(axis1=0, axis2=1)
-for n in range(3):
+
+#def plot_states(states, cluster, X_all, S_all):
+#	covars_ = cluster.covars_.diagonal(axis1=0, axis2=1)
+#	q = np.concatenate(X_all)
+for n in range(n_states):
 	for i, j in [(0,1)]:
 	    	fig = plt.figure()
     		plt.hexbin(q[:,i],q[:,j], bins = 'log')
-    		plt.errorbar(cluster.means_[:, i], cluster.means_[j], xerr=covars_[i]**0.5, yerr=covars_[:,j]**0.5,fmt='kx', linewidth=4)
-    		for k,data in enumerate(X_all):
-        		if S_all[k][0]==n:
-            			plt.plot(data[:,i], data[:,j], 'k')
-    		fig.savefig('../figures/gpcr_tics_%d_state%d.pdf'%(n_choose, n))
+    		plt.errorbar(cluster.means_[:, i], cluster.means_[:,j], xerr=covars_[i]**0.5, yerr=covars_[j]**0.5,fmt='kx', linewidth=4)
+    	for k, data in enumerate(X_all):
+        	if S_all[k][0]==n:
+            		plt.plot(data[:,i], data[:,j], 'k')
+    	fig.savefig('../figures/gpcr_tics_%d_state%d.pdf'%(n_components, n))
 
+
+#plot_states(n_states, cluster, X_all, S_all)
 
 ind = msm.draw_samples(S_all, 3)
 samples = mixtape.utils.map_drawn_samples(ind, trajectories)
 
 for i in range(n_states):
 	for k, t in enumerate(samples[i]):
-		t.save("../pdbs/state%d-%d.pdb" % (i, k)
+		t.save("../pdbs/state%d-%d.pdb" % (i, k))
 
+
+sklearn.externals.joblib.dump(cluster, '../joblib_dump/cluster.job', compress=True)
+sklearn.externals.joblib.dump(union, '../joblib_dump/union.job', compress=True)
+sklearn.externals.joblib.dump(pipeline, '../joblib_dump/pipeline.job', compress=True)
+sklearn.externals.joblib.dump(feature_pipeline, '../joblib_dump/feature_pipeline.job', compress=True)
+sklearn.externals.joblib.dump(cluster_pipeline, '../joblib_dump/cluster_piepline.job', compress=True)
 #Plot 2D hexbins of metrics
-targets = {'Hel_3-6_dist':[], 'NPxxY_RMSD_act': [], 'NPxxy_RMSD_inact':[], 'Conn_RMSD_act':[], 'Conn_RMSD_inact':[], 'bind_RMSD_act':[], 'bind_RMSD_inact':[]}
+#targets = {'Hel_3-6_dist':[], 'NPxxY_RMSD_act': [], 'NPxxy_RMSD_inact':[], 'Conn_RMSD_act':[], 'Conn_RMSD_inact':[], 'bind_RMSD_act':[], 'bind_RMSD_inact':[]}
 
-targetsi_all = ['Hel_3-6_dist_all', 'NPxxY_RMSD_act_all', 'NPxxy_RMSD_inact_all', 'Conn_RMSD_act_all', 'Conn_RMSD_inact_all', 'bind_RMSD_act_all', 'bind_RMSD_inact_all']
+#targetsi_all = ['Hel_3-6_dist_all', 'NPxxY_RMSD_act_all', 'NPxxy_RMSD_inact_all', 'Conn_RMSD_act_all', 'Conn_RMSD_inact_all', 'bind_RMSD_act_all', 'bind_RMSD_inact_all']
 
-for i, target in enumerate(zip(targets.iteritems(), targets_all)):
-	target[0][-1].append([union.transformer_list[i][-1].partial_transform(t) for t in trajectories])
-	target[1][-1] = np.concatenate(target[0][-1]:)
-        fig = plt.figure()
-	plt.hist(target[	
-fig = plt.figure()
-plt.hist(Hel_dist_all, bin=100)
-plt.title('Helix 3-6 distance')
-plt.xlabel('distance')
-plt.ylabel('counts')
-fig.savefig('../figures/hist_%s.pdb)
+#for i, target in enumerate(zip(targets.iteritems(), targets_all)):
+#	target[0][-1].append([union.transformer_list[i][-1].partial_transform(t) for t in trajectories])
+#	target[1][-1] = np.concatenate(target[0][-1]:)
+#        fig = plt.figure()
+#	plt.hist(target[	
+#fig = plt.figure()
+#plt.hist(Hel_dist_all, bin=100)
+#plt.title('Helix 3-6 distance')
+#plt.xlabel('distance')
+#plt.ylabel('counts')
+#fig.savefig('../figures/hist_%s.pdb)
